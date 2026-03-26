@@ -16,25 +16,34 @@ public class MainForm : Form
     public MainForm()
     {
         Text = "Deployment Hours Support";
-        AutoScaleMode = AutoScaleMode.Dpi;
-        AutoScaleDimensions = new SizeF(96F, 96F);
-        Size = new Size(700, 300);
+        AutoScaleMode = AutoScaleMode.Font;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
-        MinimumSize = new Size(700, 300);
 
-        int labelWidth = 140;
-        int controlWidth = 170;
-        int rowHeight = 30;
-        int col1X = 10, col2X = 340;
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 4,
+            RowCount = 6,
+            Padding = new Padding(10),
+            AutoSize = true
+        };
 
-        // Row 1
-        Controls.Add(CreateLabel("Type Service:", col1X, 10, labelWidth));
+        // Column widths: Label, Control, Label, Control
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
+
+        for (int i = 0; i < 6; i++)
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        // Row 0: Type Service | Ticket Reference
+        layout.Controls.Add(CreateLabel("Type Service:"), 0, 0);
         _cmbServiceType = new ComboBox
         {
-            Location = new Point(col1X + labelWidth, 10),
-            Width = controlWidth,
+            Dock = DockStyle.Fill,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
         _cmbServiceType.Items.AddRange(new object[] { "Management", "Engineer", "Support" });
@@ -45,77 +54,78 @@ public class MainForm : Form
             _txtInitiatedBy.Enabled = selected == "Management" || selected == "Support";
             if (!_txtInitiatedBy.Enabled) _txtInitiatedBy.Clear();
         };
-        Controls.Add(_cmbServiceType);
+        layout.Controls.Add(_cmbServiceType, 1, 0);
 
-        Controls.Add(CreateLabel("Ticket Reference:", col2X, 10, labelWidth));
-        _txtTicketRef = new TextBox { Location = new Point(col2X + labelWidth, 10), Width = controlWidth };
-        Controls.Add(_txtTicketRef);
+        layout.Controls.Add(CreateLabel("Ticket Reference:"), 2, 0);
+        _txtTicketRef = new TextBox { Dock = DockStyle.Fill };
+        layout.Controls.Add(_txtTicketRef, 3, 0);
 
-        // Row 2
-        int row2Y = 10 + rowHeight + 10;
-        Controls.Add(CreateLabel("Subject:", col1X, row2Y, labelWidth));
-        _txtSubject = new TextBox { Location = new Point(col1X + labelWidth, row2Y), Width = controlWidth };
-        Controls.Add(_txtSubject);
+        // Row 1: Subject | Handled By
+        layout.Controls.Add(CreateLabel("Subject:"), 0, 1);
+        _txtSubject = new TextBox { Dock = DockStyle.Fill };
+        layout.Controls.Add(_txtSubject, 1, 1);
 
-        Controls.Add(CreateLabel("Handled By:", col2X, row2Y, labelWidth));
-        _txtHandledBy = new TextBox { Location = new Point(col2X + labelWidth, row2Y), Width = controlWidth };
-        Controls.Add(_txtHandledBy);
+        layout.Controls.Add(CreateLabel("Handled By:"), 2, 1);
+        _txtHandledBy = new TextBox { Dock = DockStyle.Fill };
+        layout.Controls.Add(_txtHandledBy, 3, 1);
 
-        // Row 3
-        int row3Y = row2Y + rowHeight + 10;
-        Controls.Add(CreateLabel("Initiated By:", col1X, row3Y, labelWidth));
-        _txtInitiatedBy = new TextBox { Location = new Point(col1X + labelWidth, row3Y), Width = controlWidth };
-        Controls.Add(_txtInitiatedBy);
+        // Row 2: Initiated By | Hours
+        layout.Controls.Add(CreateLabel("Initiated By:"), 0, 2);
+        _txtInitiatedBy = new TextBox { Dock = DockStyle.Fill };
+        layout.Controls.Add(_txtInitiatedBy, 1, 2);
 
-        Controls.Add(CreateLabel("Hours:", col2X, row3Y, labelWidth));
+        layout.Controls.Add(CreateLabel("Hours:"), 2, 2);
         _numHours = new NumericUpDown
         {
-            Location = new Point(col2X + labelWidth, row3Y),
-            Width = 80,
+            Dock = DockStyle.Fill,
             Minimum = 0.25m,
             Maximum = 24,
             DecimalPlaces = 2,
             Increment = 0.25m,
             Value = 1
         };
-        Controls.Add(_numHours);
+        layout.Controls.Add(_numHours, 3, 2);
 
-        // Row 4
-        int row4Y = row3Y + rowHeight + 10;
-        Controls.Add(CreateLabel("Date:", col1X, row4Y, labelWidth));
+        // Row 3: Date
+        layout.Controls.Add(CreateLabel("Date:"), 0, 3);
         _dtpDate = new DateTimePicker
         {
-            Location = new Point(col1X + labelWidth, row4Y),
-            Width = controlWidth,
+            Dock = DockStyle.Fill,
             Format = DateTimePickerFormat.Short
         };
-        Controls.Add(_dtpDate);
+        layout.Controls.Add(_dtpDate, 1, 3);
 
-        // Row 5 - Button
-        int row5Y = row4Y + rowHeight + 20;
-
+        // Row 4: Button
         var btnAdd = new Button
         {
             Text = "Add Entry",
-            Location = new Point(col1X, row5Y),
             Width = 120,
-            Height = 32,
+            Height = 35,
             BackColor = Color.FromArgb(70, 130, 180),
             ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat
+            FlatStyle = FlatStyle.Flat,
+            Margin = new Padding(0, 10, 0, 0)
         };
         btnAdd.Click += BtnAdd_Click;
-        Controls.Add(btnAdd);
+        layout.Controls.Add(btnAdd, 0, 4);
+        layout.SetColumnSpan(btnAdd, 2);
+
+        Controls.Add(layout);
+
+        // Set form size after layout is added
+        AutoSize = true;
+        AutoSizeMode = AutoSizeMode.GrowAndShrink;
     }
 
-    private Label CreateLabel(string text, int x, int y, int width)
+    private Label CreateLabel(string text)
     {
         return new Label
         {
             Text = text,
-            Location = new Point(x, y + 3),
-            Width = width,
-            TextAlign = ContentAlignment.MiddleRight
+            AutoSize = true,
+            TextAlign = ContentAlignment.MiddleRight,
+            Anchor = AnchorStyles.Right,
+            Margin = new Padding(3, 8, 3, 3)
         };
     }
 
