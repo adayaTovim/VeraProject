@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using VeraProject.Models;
 using VeraProject.Services;
 
@@ -156,7 +157,26 @@ public class MainForm : Form
 
         try
         {
+            // Save to local Excel
             ExcelExporter.AppendEntry(entry);
+
+            // Save to Google Sheets and open in browser
+            if (GoogleSheetsExporter.IsConfigured)
+            {
+                try
+                {
+                    GoogleSheetsExporter.AppendEntry(entry);
+                    var url = GoogleSheetsExporter.GetSpreadsheetUrl();
+                    if (!string.IsNullOrEmpty(url))
+                        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                }
+                catch (Exception gsEx)
+                {
+                    MessageBox.Show($"Saved locally, but Google Sheets sync failed: {gsEx.Message}",
+                        "Google Sheets Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+
             MessageBox.Show("Entry added!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             _cmbServiceType.SelectedIndex = 0;

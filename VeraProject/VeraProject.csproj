@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3525" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3508" />
   </ItemGroup>
 
 </Project>

@@ -18,3 +18,8 @@ x86/
 ## NuGet
 packages/
 *.nupkg
+
+## Google Sheets credentials
+service-account.json
+spreadsheet-id.txt
+google-share-email.txt
