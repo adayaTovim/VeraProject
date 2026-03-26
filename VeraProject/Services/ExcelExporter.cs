@@ -235,17 +235,24 @@ public static class ExcelExporter
 
         for (int row = 2; row <= lastRow; row++)
         {
-            entries.Add(new SupportEntry
+            try
             {
-                ServiceType = dataSheet.Cell(row, 1).GetString(),
-                TicketReference = dataSheet.Cell(row, 2).GetString(),
-                Subject = dataSheet.Cell(row, 3).GetString(),
-                HandledBy = dataSheet.Cell(row, 4).GetString(),
-                InitiatedBy = dataSheet.Cell(row, 5).GetString(),
-                TicketStatus = dataSheet.Cell(row, 6).GetString(),
-                Hours = dataSheet.Cell(row, 7).GetDouble(),
-                Date = dataSheet.Cell(row, 8).GetDateTime()
-            });
+                var serviceType = dataSheet.Cell(row, 1).GetString();
+                if (string.IsNullOrWhiteSpace(serviceType)) continue;
+
+                entries.Add(new SupportEntry
+                {
+                    ServiceType = serviceType,
+                    TicketReference = dataSheet.Cell(row, 2).GetString(),
+                    Subject = dataSheet.Cell(row, 3).GetString(),
+                    HandledBy = dataSheet.Cell(row, 4).GetString(),
+                    InitiatedBy = dataSheet.Cell(row, 5).GetString(),
+                    TicketStatus = dataSheet.Cell(row, 6).GetString(),
+                    Hours = dataSheet.Cell(row, 7).IsEmpty() ? 0 : dataSheet.Cell(row, 7).GetDouble(),
+                    Date = dataSheet.Cell(row, 8).IsEmpty() ? DateTime.Today : dataSheet.Cell(row, 8).GetDateTime()
+                });
+            }
+            catch { }
         }
 
         return entries;

@@ -17,25 +17,29 @@ public class MainForm : Form
     public MainForm()
     {
         Text = "Deployment Hours Support";
-        AutoScaleMode = AutoScaleMode.Font;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
+        Font = new Font("Segoe UI", 9f);
+
+        // Use font height to calculate sizes that scale with DPI
+        int unit = TextRenderer.MeasureText("M", Font).Height;
 
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 4,
             RowCount = 6,
-            Padding = new Padding(10),
-            AutoSize = true
+            Padding = new Padding(unit / 2),
+            AutoSize = true,
+            MinimumSize = new Size(unit * 35, 0)
         };
 
-        // Column widths: Label, Control, Label, Control
+        // All columns auto-size based on content
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
         for (int i = 0; i < 6; i++)
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -100,8 +104,8 @@ public class MainForm : Form
         var btnAdd = new Button
         {
             Text = "Add Entry",
-            Width = 120,
-            Height = 35,
+            AutoSize = true,
+            Padding = new Padding(20, 5, 20, 5),
             BackColor = Color.FromArgb(70, 130, 180),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -113,7 +117,7 @@ public class MainForm : Form
 
         Controls.Add(layout);
 
-        // Set form size after layout is added
+        // Form auto-sizes to fit all content - no fixed pixel sizes
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
     }
@@ -166,7 +170,7 @@ public class MainForm : Form
                 try
                 {
                     GoogleSheetsExporter.AppendEntry(entry);
-                    var url = GoogleSheetsExporter.GetSpreadsheetUrl();
+                    var url = GoogleSheetsExporter.GetSheetUrl();
                     if (!string.IsNullOrEmpty(url))
                         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                 }
