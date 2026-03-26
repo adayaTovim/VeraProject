@@ -56,6 +56,8 @@ public static class ExcelExporter
         // Read all entries for summary sheets
         var entries = ReadAllEntries(dataSheet);
 
+        // --- Data sheets first (referenced by summary sheets) ---
+
         // Deployment Hours Report (Management + Engineer only)
         RebuildSheet(workbook, "Deployment Hours Report", ws =>
         {
@@ -84,98 +86,13 @@ public static class ExcelExporter
             StyleDataRows(ws, 2, row - 1, dHeaders.Length);
             ws.SheetView.FreezeRows(1);
             ws.Columns().AdjustToContents();
+
+            // Add dropdown for Type Service column (existing + future rows)
+            var dvRange = ws.Range($"A2:A1000");
+            dvRange.CreateDataValidation().List("\"Management,Deployment\"");
         });
 
-        // Contract Details
-        RebuildSheet(workbook, "Contract Details", ws =>
-        {
-            ws.Cell(1, 1).Value = "Service";
-            ws.Cell(1, 2).Value = "Total Hours";
-            StyleHeader(ws, 1, 2);
-
-            double deploymentHours = entries.Where(e => e.ServiceType == "Engineer").Sum(e => e.Hours);
-            double managementHours = entries.Where(e => e.ServiceType == "Management").Sum(e => e.Hours);
-            double supportHours = entries.Where(e => e.ServiceType == "Support").Sum(e => e.Hours);
-
-            ws.Cell(2, 1).Value = "Deployment";
-            ws.Cell(2, 2).Value = deploymentHours;
-            ws.Cell(3, 1).Value = "Management";
-            ws.Cell(3, 2).Value = managementHours;
-            ws.Cell(4, 1).Value = "Support";
-            ws.Cell(4, 2).Value = supportHours;
-
-            // Total row
-            ws.Cell(5, 1).Value = "Total";
-            ws.Cell(5, 2).Value = deploymentHours + managementHours + supportHours;
-            ws.Cell(5, 1).Style.Font.Bold = true;
-            ws.Cell(5, 2).Style.Font.Bold = true;
-            ws.Cell(5, 1).Style.Border.TopBorder = XLBorderStyleValues.Double;
-            ws.Cell(5, 2).Style.Border.TopBorder = XLBorderStyleValues.Double;
-
-            for (int i = 2; i <= 5; i++)
-                ws.Cell(i, 2).Style.NumberFormat.Format = "0.00";
-
-            StyleDataRows(ws, 2, 4, 2);
-            ws.Columns().AdjustToContents();
-        });
-
-        // Hours Per Month (Management + Support side by side)
-        RebuildSheet(workbook, "Hours Per Month", ws =>
-        {
-            ws.Cell(1, 1).Value = "Month";
-            ws.Cell(1, 2).Value = "Management Hours";
-            ws.Cell(1, 3).Value = "Support Hours";
-            ws.Cell(1, 4).Value = "Total";
-            StyleHeader(ws, 1, 4);
-
-            var allMonths = entries
-                .Where(e => e.ServiceType == "Management" || e.ServiceType == "Support")
-                .Select(e => new { e.Date.Year, e.Date.Month })
-                .Distinct()
-                .OrderBy(m => m.Year).ThenBy(m => m.Month);
-
-            int row = 2;
-            double totalMgmt = 0, totalSupport = 0;
-            foreach (var month in allMonths)
-            {
-                double mgmt = entries
-                    .Where(e => e.ServiceType == "Management" && e.Date.Year == month.Year && e.Date.Month == month.Month)
-                    .Sum(e => e.Hours);
-                double supp = entries
-                    .Where(e => e.ServiceType == "Support" && e.Date.Year == month.Year && e.Date.Month == month.Month)
-                    .Sum(e => e.Hours);
-
-                ws.Cell(row, 1).Value = $"{month.Month:D2}/{month.Year}";
-                ws.Cell(row, 2).Value = mgmt;
-                ws.Cell(row, 3).Value = supp;
-                ws.Cell(row, 4).Value = mgmt + supp;
-                totalMgmt += mgmt;
-                totalSupport += supp;
-                row++;
-            }
-
-            // Total row
-            ws.Cell(row, 1).Value = "Total";
-            ws.Cell(row, 1).Style.Font.Bold = true;
-            ws.Cell(row, 2).Value = totalMgmt;
-            ws.Cell(row, 3).Value = totalSupport;
-            ws.Cell(row, 4).Value = totalMgmt + totalSupport;
-            for (int i = 1; i <= 4; i++)
-            {
-                ws.Cell(row, i).Style.Font.Bold = true;
-                ws.Cell(row, i).Style.Border.TopBorder = XLBorderStyleValues.Double;
-            }
-
-            for (int r = 2; r <= row; r++)
-                for (int c = 2; c <= 4; c++)
-                    ws.Cell(r, c).Style.NumberFormat.Format = "0.00";
-
-            StyleDataRows(ws, 2, row - 1, 4);
-            ws.SheetView.FreezeRows(1);
-            ws.Columns().AdjustToContents();
-        });
-
-        // Ticket Hours Report (Support only)
+        // Ticket Hours Report (Support only) - built before summary sheets that reference it
         RebuildSheet(workbook, "Ticket Hours Report", ws =>
         {
             var ticketHeaders = new[] { "Ticket", "Ticket Status", "Initiated By", "Handled By", "Date", "Hours" };
@@ -199,21 +116,113 @@ public static class ExcelExporter
                 row++;
             }
 
-            // Total row
-            if (supportEntries.Count > 0)
-            {
-                ws.Cell(row, 5).Value = "Total";
-                ws.Cell(row, 5).Style.Font.Bold = true;
-                ws.Cell(row, 6).Value = supportEntries.Sum(e => e.Hours);
-                ws.Cell(row, 6).Style.Font.Bold = true;
-                ws.Cell(row, 6).Style.NumberFormat.Format = "0.00";
-                ws.Cell(row, 5).Style.Border.TopBorder = XLBorderStyleValues.Double;
-                ws.Cell(row, 6).Style.Border.TopBorder = XLBorderStyleValues.Double;
-            }
+            // Total in column 7 (separate empty column)
+            ws.Cell(1, 7).Value = "Total Hours";
+            StyleHeader(ws, 1, 7);
+            ws.Cell(2, 7).FormulaA1 = $"SUM(F2:F{Math.Max(row - 1, 2)})";
+            ws.Cell(2, 7).Style.Font.Bold = true;
+            ws.Cell(2, 7).Style.NumberFormat.Format = "0.00";
 
             StyleDataRows(ws, 2, row - 1, ticketHeaders.Length);
             ws.SheetView.FreezeRows(1);
             ws.Columns().AdjustToContents();
+        });
+
+        // --- Summary sheets (reference data sheets above) ---
+
+        // Contract Details
+        RebuildSheet(workbook, "Contract Details", ws =>
+        {
+            ws.Cell(1, 1).Value = "Service";
+            ws.Cell(1, 2).Value = "Total Hours";
+            StyleHeader(ws, 1, 2);
+
+            ws.Cell(2, 1).Value = "Deployment";
+            ws.Cell(2, 2).FormulaA1 = "SUMIF('Deployment Hours Report'!$A$2:$A$1000,\"Deployment\",'Deployment Hours Report'!$F$2:$F$1000)";
+
+            ws.Cell(3, 1).Value = "Management";
+            ws.Cell(3, 2).FormulaA1 = "SUMIF('Deployment Hours Report'!$A$2:$A$1000,\"Management\",'Deployment Hours Report'!$F$2:$F$1000)";
+
+            ws.Cell(4, 1).Value = "Support";
+            ws.Cell(4, 2).FormulaA1 = "'Ticket Hours Report'!$G$2";
+
+            // Total row
+            ws.Cell(5, 1).Value = "Total";
+            ws.Cell(5, 2).FormulaA1 = "SUM(B2:B4)";
+            ws.Cell(5, 1).Style.Font.Bold = true;
+            ws.Cell(5, 2).Style.Font.Bold = true;
+            ws.Cell(5, 1).Style.Border.TopBorder = XLBorderStyleValues.Double;
+            ws.Cell(5, 2).Style.Border.TopBorder = XLBorderStyleValues.Double;
+
+            for (int i = 2; i <= 5; i++)
+                ws.Cell(i, 2).Style.NumberFormat.Format = "0.00";
+
+            StyleDataRows(ws, 2, 4, 2);
+            ws.Columns().AdjustToContents();
+            ws.Protect();
+        });
+
+        // Hours Per Month
+        RebuildSheet(workbook, "Hours Per Month", ws =>
+        {
+            ws.Cell(1, 1).Value = "Month";
+            ws.Cell(1, 2).Value = "Management Hours";
+            ws.Cell(1, 3).Value = "Support Hours";
+            ws.Cell(1, 4).Value = "Total";
+            StyleHeader(ws, 1, 4);
+
+            var allMonths = entries
+                .Select(e => new { e.Date.Year, e.Date.Month })
+                .Distinct()
+                .OrderBy(m => m.Year).ThenBy(m => m.Month);
+
+            int row = 2;
+            foreach (var month in allMonths)
+            {
+                ws.Cell(row, 1).Value = $"{month.Month:D2}/{month.Year}";
+
+                // Management Hours: SUMPRODUCT matching "Management" in Deployment Hours Report by month/year
+                ws.Cell(row, 2).FormulaA1 =
+                    $"SUMPRODUCT(('Deployment Hours Report'!$A$2:$A$1000=\"Management\")*" +
+                    $"(TEXT('Deployment Hours Report'!$G$2:$G$1000,\"MM/YYYY\")=A{row})*" +
+                    $"'Deployment Hours Report'!$F$2:$F$1000)";
+
+                // Support Hours: Ticket Hours Report + "Deployment" entries from Deployment Hours Report
+                ws.Cell(row, 3).FormulaA1 =
+                    $"SUMPRODUCT((TEXT('Ticket Hours Report'!$E$2:$E$1000,\"MM/YYYY\")=A{row})*" +
+                    $"'Ticket Hours Report'!$F$2:$F$1000)+" +
+                    $"SUMPRODUCT(('Deployment Hours Report'!$A$2:$A$1000=\"Deployment\")*" +
+                    $"(TEXT('Deployment Hours Report'!$G$2:$G$1000,\"MM/YYYY\")=A{row})*" +
+                    $"'Deployment Hours Report'!$F$2:$F$1000)";
+
+                // Total = Management + Support
+                ws.Cell(row, 4).FormulaA1 = $"B{row}+C{row}";
+
+                row++;
+            }
+
+            int lastDataRow = row - 1;
+
+            // Total row
+            ws.Cell(row, 1).Value = "Total";
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 2).FormulaA1 = $"SUM(B2:B{lastDataRow})";
+            ws.Cell(row, 3).FormulaA1 = $"SUM(C2:C{lastDataRow})";
+            ws.Cell(row, 4).FormulaA1 = $"SUM(D2:D{lastDataRow})";
+            for (int i = 1; i <= 4; i++)
+            {
+                ws.Cell(row, i).Style.Font.Bold = true;
+                ws.Cell(row, i).Style.Border.TopBorder = XLBorderStyleValues.Double;
+            }
+
+            for (int r = 2; r <= row; r++)
+                for (int c = 2; c <= 4; c++)
+                    ws.Cell(r, c).Style.NumberFormat.Format = "0.00";
+
+            StyleDataRows(ws, 2, row - 1, 4);
+            ws.SheetView.FreezeRows(1);
+            ws.Columns().AdjustToContents();
+            ws.Protect();
         });
 
         workbook.SaveAs(FilePath);
@@ -299,7 +308,6 @@ public static class ExcelExporter
 
     private static void ForceCloseExcel(string path)
     {
-        string fileName = Path.GetFileName(path);
         var excelProcesses = Process.GetProcessesByName("EXCEL");
 
         foreach (var process in excelProcesses)

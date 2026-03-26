@@ -16,15 +16,18 @@ public class MainForm : Form
     public MainForm()
     {
         Text = "Deployment Hours Support";
-        Size = new Size(650, 280);
+        AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96F, 96F);
+        Size = new Size(700, 300);
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
+        MinimumSize = new Size(700, 300);
 
-        int labelWidth = 120;
+        int labelWidth = 140;
         int controlWidth = 170;
         int rowHeight = 30;
-        int col1X = 10, col2X = 320;
+        int col1X = 10, col2X = 340;
 
         // Row 1
         Controls.Add(CreateLabel("Type Service:", col1X, 10, labelWidth));

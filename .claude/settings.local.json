@@ -13,7 +13,9 @@
       "Bash(dotnet:*)",
       "Bash(git config:*)",
       "Bash(git init:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(python:*)",
+      "Bash(taskkill //F //IM VeraProject.exe)"
     ]
   }
 }
