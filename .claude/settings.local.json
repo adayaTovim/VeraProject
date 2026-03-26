@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show:*)",
+      "Bash(py --version)",
+      "Bash(where python:*)",
+      "Bash(where py:*)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Read(//c/Users/adayap/AppData/Local/Programs/**)",
+      "Bash(/c/Users/adayap/AppData/Local/Microsoft/WindowsApps/python.exe --version)",
+      "Bash(where node:*)",
+      "Bash(where dotnet:*)",
+      "Bash(dotnet:*)",
+      "Bash(git config:*)",
+      "Bash(git init:*)",
+      "Bash(gh repo:*)"
+    ]
+  }
+}
